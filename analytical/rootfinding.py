@@ -1,5 +1,8 @@
 """Routines for root finding."""
 
+import math
+import warnings
+
 import numpy as np
 from scipy.optimize import brentq
 from chebpy import chebfun
@@ -67,9 +70,26 @@ def subdivide(F, xranges):
     return ranges_new
 
 
-def equal(a, b):
-    """Check if two values are equal."""
-    return np.isclose(a, b)
+def equal(a, b, abstol=1e-20, reltol=1e-9, mathlib=math):
+    """Check if two values are equal.
+
+    If exact=True, we do an exact check for equality. This can cause problems!
+    If exact=False, we use isclose with abstol=1e-20, reltol=1e-9.
+
+    mathlib allows to specify the module from which isclose should be used: numpy, math, or custom.
+    A custom module needs to implement .__name__ and .isclose(a, b, abstol=__, reltol=__)
+    """
+
+    # depending on choice of function, assign tolerances
+    if mathlib.__name__ == 'math':
+        tols = dict(abs_tol=abstol, rel_tol=reltol)
+    elif mathlib.__name__ == 'numpy':
+        tols = dict(atol=abstol, rtol=reltol)
+    else:
+        tols = dict(abstol=abstol, reltol=reltol)
+
+    # call function with values
+    return mathlib.isclose(a, b, **tols)
 
 
 def local_extrema(F, xrange):
@@ -79,7 +99,7 @@ def local_extrema(F, xrange):
     """
 
     # check that the interval is not degenerate
-    if xrange[0] == xrange[1]:
+    if equal(*xrange, abstol=0, reltol=0):  # exact equality
         return xrange
 
     # find extrema
@@ -108,7 +128,7 @@ def local_extrema(F, xrange):
     return extrema
 
 
-def find_roots_in_interval(F, a, b):
+def find_roots_in_interval(F, a, b, abstol=1e-22, reltol=1e-10, maxiter=10):
     """Find a single root in an interval.
     
     This assumes F only has one root in the inverval (a, b).
@@ -123,7 +143,10 @@ def find_roots_in_interval(F, a, b):
     else:  # there has to be a root since yA and yB have different sign
         # https://mathworks.com/help/matlab/ref/fzero.html
         fsolve = brentq  # for single root, very robust & fast
-        root = fsolve(F, a, b)
+        tols = dict(xtol=abstol, rtol=reltol, maxiter=maxiter)
+        root, result = fsolve(F, a, b, full_output=True, disp=False, **tols)
+        if not result.converged:
+            warnings.warn("fsolve did not converge in [{0:g},{1:g}]".format(a,b))
         return root
 
 
