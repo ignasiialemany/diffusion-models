@@ -13,8 +13,8 @@ def solution_1D(t, x, idx0, *args, **kwargs):
     idx0 = (scalar) index such that x0 = x[idx0]
     soltype & kwargs (only for t>0):
         'free', D0
-        'plates', D0, L, N
-        'arbitrary', lambdas, nus
+        'plates', D0, L, N, [sumtype], [clip, thresh]
+        'arbitrary', lambdas, nus, [sumtype], [clip, thresh]
     """
 
     if t == 0:  # initial condition
@@ -74,19 +74,32 @@ def gaussian(x, idx0, D0, t):
     return y
 
 
-def series(lambdas, nus, idx0, t_n):
+def series(lambdas, nus, idx0, t_n, sumtype='default', clip=False, thresh=0):
     """Series solution.
-    
+
     lambdas: (1xN) array
     nus: (NxM) matrix
     idx0: (scalar) index
     t_n: (scalar) time
+    sumtype: (str) 'default' or 'fejer' summation
+    clip: (bool) whether to clip all values <=thresh to 0
+    thresh: (scalar) where to clip
     """
 
     nu_0 = nus[:, idx0]
     solution = np.exp(-lambdas[:, np.newaxis] * t_n) * nus * nu_0[:, np.newaxis]
 
     # sum down the columns over all terms
-    y = np.sum(solution, 0)  # standard fourier summation
+    if sumtype == 'default':
+        y = np.sum(solution, 0)  # standard fourier summation
+    elif sumtype == 'fejer':  # fejer summation
+        Nmodes = solution.shape[0]
+        ps = np.cumsum(solution, 0)/Nmodes  # running average
+        y = np.sum(ps, 0)  # sum the partial sums
+    else:
+        raise Exception('Wrong sumtype')
+
+    if clip:
+        y = np.where(y<thresh, 0, y)
 
     return y
