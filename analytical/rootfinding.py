@@ -38,7 +38,7 @@ def find_roots(F, xrange):
 
     ## 4) post-process
     x0 = np.unique(roots_all)  # sorted
-    if x0:  # if we found any
+    if x0.size > 0:  # if we found any
         err = F(x0)  # F evaluated at x0 corresponds to the error, since F(x0)===0
     else:
         err = None
