@@ -2,6 +2,46 @@
 
 from math import sqrt, isinf, sin, cos
 
+import numpy as np
+
+from .rootfinding import find_roots
+
+
+class Solver:
+
+    def __init__(self, diffusivities, lengths, permeabilities):
+
+        # store as numpy array
+        self.D = np.array(diffusivities)
+        self.L = np.array(lengths)
+        self.P = np.array(permeabilities)
+
+        self.eigV = None
+
+    def eval_F(self, x):
+        """Evaluate the function F(x)."""
+        # no requirements on x, will evaluate any shape and value
+        evaluate = np.vectorize(lambda xi: F(xi, K=self.P, D=self.D, L=self.L), otypes=[float])
+        return evaluate(x)
+
+    def find_eigV(self, xrange=(0, 1000)):
+        """Find eigenvalues."""
+
+        # range
+        min_lambda = xrange[0]
+        max_lambda = xrange[1]
+
+        # input validation
+        if min_lambda > max_lambda:
+            raise ValueError('min>max')
+        if min_lambda < 0:
+            raise ValueError('min<0')
+
+        # calc
+        roots, error = find_roots(self.eval_F, xrange)
+        self.eigV = roots
+        return roots, error
+
 
 def left_BC(sqrt_lambda, sqrt_D_0, K_L):
     """Apply boundary condition at the left edge of the domain."""
