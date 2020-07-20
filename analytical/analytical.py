@@ -17,6 +17,7 @@ class Solver:
         self.P = np.array(permeabilities)
 
         self.eigV = None
+        self.eigM = None
 
     def eval_F(self, x):
         """Evaluate the function F(x)."""
@@ -41,6 +42,83 @@ class Solver:
         roots, error = find_roots(self.eval_F, xrange)
         self.eigV = roots
         return roots, error
+
+    def find_eigM(self, xq, eigV=None):
+        """Find eigenmodes for each eigenvalue.
+
+        eigV := (N) eigenvalues
+        xq := (M) query points
+        -> (N,M) eigenmodes
+        """
+
+        if not eigV:  # not provided
+            if self.eigV is None:
+                self.find_eigV()  # using default args, saves self.eigV
+            eigV = self.eigV
+
+        # convert to numpy array
+        eigV = np.array(eigV)
+        xq = np.array(xq)
+
+        # calculate
+        eigM = np.array([compute_mode(ev, self.P, self.D, self.L, xq) for ev in eigV])
+        self.eigM = eigM
+        return eigM
+
+
+def compute_mode(l, K, D, L, x):
+    """Compute the mode corresponding to the eigenvalue.
+
+    l := (1) lambda, eigenvalue
+    K := (N+1) membrane permeabilities
+    D := (N) compartment diffusivities
+    L := (N) compartment lengths
+    x := (M) query points at which to compute the modes
+    """
+
+    # pre-compute
+    sqrt_lambda = np.sqrt(l)
+    sqrt_D = np.sqrt(D)
+    r = 1/K[1:-1]  # internal resistance
+    barriers = np.cumsum(np.insert(L, 0, 0))  # positions starting from zero
+
+    ########## compute the mode
+
+    # initialise at left boundary
+    K_L = K[0]  # rename
+    if np.isinf(K_L):  # infinite relaxivity
+        V = [0, 1]
+    elif K_L == 0:  # no relaxivity
+        V = [1, 0]
+    else:  # finite relaxivity
+        V = [1, K_L/sqrt_lambda]
+
+    y = np.zeros(x.size)
+    N = L.size
+
+    for i in range(N):  # for each compartment
+
+        idxs = np.logical_and(x >= barriers[i], x < barriers[i+1])  # inside this compartment
+        val_ra = sqrt_lambda/sqrt_D[i] * (x[idxs]-barriers[i])
+        y[idxs] = np.cos(val_ra)*V[0] \
+                + np.sin(val_ra)*V[1]
+
+        if i < N-1:  # except last compartment
+            val_k = sqrt_lambda*L[i]/sqrt_D[i]
+            R_k = [[ np.cos(val_k), np.sin(val_k)], \
+                   [-np.sin(val_k), np.cos(val_k)]]
+            K_k_kp1 = [[1, sqrt_lambda*sqrt_D[i]*r[i]], \
+                       [0, sqrt_D[i]/sqrt_D[i+1]]]
+            M_k_kp1 = np.matmul(K_k_kp1, R_k)
+            V = np.matmul(M_k_kp1, V)
+
+    # normalise the eigenmode
+    Norm = np.sqrt(np.trapz(y**2, x))  # accounts for variable x spacing
+    eigenMode = y/Norm
+
+    # Correct last value that is zero by symmetry
+    eigenMode[-1] = eigenMode[-2]
+    return eigenMode
 
 
 def left_BC(sqrt_lambda, sqrt_D_0, K_L):
