@@ -57,8 +57,8 @@ def subdivide(F, xranges):
             xranges_i = np.array([xrange])  # done, reshape into column
         else:
             # further divide
-            ranges_new = split_into_interval(extrema)
-            xranges_i = subdivide(F, ranges_new)  # recurse
+            subintervals = split_into_interval(extrema)
+            xranges_i = subdivide(F, subintervals)  # recurse
 
         # store
         if xranges_i.size:  # found something
