@@ -14,7 +14,7 @@ class Solver:
         # store as numpy array
         self.D = np.array(diffusivities)
         self.L = np.array(lengths)
-        self.P = np.array(permeabilities)
+        self.K = np.array(permeabilities)
 
         self.eigV = None
         self.eigM = None
@@ -22,24 +22,22 @@ class Solver:
     def eval_F(self, x):
         """Evaluate the function F(x)."""
         # no requirements on x, will evaluate any shape and value
-        evaluate = np.vectorize(lambda xi: F(xi, K=self.P, D=self.D, L=self.L), otypes=[float])
+        evaluate = np.vectorize(lambda xi: F(xi, D=self.D, L=self.L, K=self.K), otypes=[float])
         return evaluate(x)
 
-    def find_eigV(self, xrange=(0, 1000)):
+    def find_eigV(self, max_lambda, zero=0):
         """Find eigenvalues."""
 
-        # range
-        min_lambda = xrange[0]
-        max_lambda = xrange[1]
-
         # input validation
-        if min_lambda > max_lambda:
-            raise ValueError('min>max')
-        if min_lambda < 0:
-            raise ValueError('min<0')
+        if max_lambda < zero:
+            raise ValueError('max_lambda < zero')
+        if zero < 0:
+            raise ValueError('zero < 0')
 
         # calc
-        roots, error = find_roots(self.eval_F, xrange)
+        roots, error = find_roots(self.eval_F, (zero, max_lambda))
+        if roots[0] != 0:  # roots are sorted, so first one should be zero
+            roots = np.insert(roots, 0, 0)  # zero is always a root
         self.eigV = roots
         return roots, error
 
@@ -53,27 +51,27 @@ class Solver:
 
         if not eigV:  # not provided
             if self.eigV is None:
-                self.find_eigV()  # using default args, saves self.eigV
-            eigV = self.eigV
+                raise Exception('Need to call find_eigV first!')
+            eigV = self.eigV  # load pre-computed eigV
 
         # convert to numpy array
         eigV = np.array(eigV)
         xq = np.array(xq)
 
         # calculate
-        eigM = np.array([compute_mode(ev, self.P, self.D, self.L, xq) for ev in eigV])
+        eigM = np.array([compute_mode(ev, xq, D=self.D, L=self.L, K=self.K) for ev in eigV])
         self.eigM = eigM
         return eigM
 
 
-def compute_mode(l, K, D, L, x):
+def compute_mode(l, x, D, L, K):
     """Compute the mode corresponding to the eigenvalue.
 
     l := (1) lambda, eigenvalue
-    K := (N+1) membrane permeabilities
+    x := (M) query points at which to compute the modes
     D := (N) compartment diffusivities
     L := (N) compartment lengths
-    x := (M) query points at which to compute the modes
+    K := (N+1) membrane permeabilities
     """
 
     # pre-compute
@@ -158,14 +156,14 @@ def right_BC(y, sqrt_lambda, sqrt_D_m, l_m, K_R):
     return F
 
 
-def internal_BC(y, sqrt_lambda, sqrt_D_i, sqrt_D_ip1, l_i, perm_i):
+def internal_BC(y, sqrt_lambda, sqrt_D_i, sqrt_D_ip1, l_i, K_i):
     """Apply internal boundary condition linking the sub-domains."""
 
     # pre-compute
     val = l_i*sqrt_lambda/sqrt_D_i
     sin_val = sin(val)
     cos_val = cos(val)
-    rlD = (1/perm_i)*sqrt_lambda*sqrt_D_i
+    rlD = (1/K_i)*sqrt_lambda*sqrt_D_i
 
     y_old = [y[0], y[1]]  # copy, not ref
 
@@ -178,13 +176,13 @@ def internal_BC(y, sqrt_lambda, sqrt_D_i, sqrt_D_ip1, l_i, perm_i):
     return y
 
 
-def F(eta, K, D, L):
+def F(eta, D, L, K):
     """Function definition of F(eta).
 
     eta := (1) eta, x-variable of F
-    K := (N+1) membrane permeabilities (including domain end)
     D := (N) compartment diffusivities
     L := (N) compartment lengths
+    K := (N+1) membrane permeabilities (including domain end)
     """
 
     # pre-calc

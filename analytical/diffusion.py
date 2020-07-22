@@ -74,7 +74,7 @@ def gaussian(x, idx0, D0, t):
     return y
 
 
-def series(lambdas, nus, idx0, t_n, sumtype='default', clip=False, thresh=0):
+def series(lambdas, nus, idx0, t_n, sumtype='default', clip=False, thresh=0, **kwargs):
     """Series solution.
 
     lambdas: (1xN) array
