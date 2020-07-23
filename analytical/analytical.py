@@ -66,6 +66,26 @@ class Solver:
         self.eigM = eigM
         return eigM
 
+    def verify_eigM(self, eigM=None, pos_dim=1):
+        """Check if there are missing or duplicate eigenvalues/eigenmodes.
+        Returns the number of sign changes for each eigenmode, and the
+        mode number (should match number of sign changes for that mode).
+
+        eigM : (NxM) array of eigenmodes with N eigenvalues and M x-positions
+        pos_dim : (scalar) use if eigM is passed transposed
+        """
+
+        if eigM is None:
+            if self.eigM is None:
+                raise Exception('Need to call find_eigM first!')
+            eigM = self.eigM
+
+        sign_eigM = np.sign(eigM)  # -1/+1, or 0 for +/- 0
+        hasSignChange = np.diff(sign_eigM, n=1, axis=pos_dim) != 0
+        nSignChanges = np.sum(hasSignChange, axis=pos_dim)
+        nthMode = np.arange(0, len(eigM))
+        return nSignChanges, nthMode
+
 
 def compute_mode(l, x, D, L, K):
     """Compute the mode corresponding to the eigenvalue.
