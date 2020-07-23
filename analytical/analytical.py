@@ -25,7 +25,7 @@ class Solver:
         evaluate = np.vectorize(lambda xi: F(xi, D=self.D, L=self.L, K=self.K), otypes=[float])
         return evaluate(x)
 
-    def find_eigV(self, max_lambda, zero=0):
+    def find_eigV(self, max_lambda, zero=0, return_error=False):
         """Find eigenvalues."""
 
         # input validation
@@ -39,7 +39,10 @@ class Solver:
         if roots[0] != 0:  # roots are sorted, so first one should be zero
             roots = np.insert(roots, 0, 0)  # zero is always a root
         self.eigV = roots
-        return roots, error
+        if return_error:
+            return roots, error
+        else:
+            return roots
 
     def find_eigM(self, xq, eigV=None):
         """Find eigenmodes for each eigenvalue.
@@ -49,7 +52,7 @@ class Solver:
         -> (N,M) eigenmodes
         """
 
-        if not eigV:  # not provided
+        if eigV is None:  # not provided
             if self.eigV is None:
                 raise Exception('Need to call find_eigV first!')
             eigV = self.eigV  # load pre-computed eigV
