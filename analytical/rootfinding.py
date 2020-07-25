@@ -8,7 +8,7 @@ from scipy.optimize import brentq
 from chebpy import chebfun
 
 
-def find_roots(F, xrange):
+def find_roots(F, xrange, root_accuracy=dict(), equal_tol=dict()):
     """Find roots of function in a given range.
 
     Fits `chebfun`s to the function and refines it to find roots
@@ -23,17 +23,17 @@ def find_roots(F, xrange):
 
     ## 1) find the extrema of the function, ...
     # We do this by fitting a single global chebfun to the function over the entire domain
-    e0_x = local_extrema(F, xrange)
+    e0_x = local_extrema(F, xrange, equal_tol=equal_tol)
 
     ## 2) ... subdivide it into segments, ...
     # Recursively subdivide into segments where we expect roots
-    intervals = subdivide(F, split_into_interval(e0_x))  # update the intervals
+    intervals = subdivide(F, split_into_interval(e0_x), equal_tol=equal_tol)  # update intervals
 
     ## 3)... and find the roots of the function.
     # Process each interval to find the local zeros
     roots_all = np.array([])  # empty
     for a, b in intervals:
-        roots = find_roots_in_interval(F, a, b)  # may be []
+        roots = find_roots_in_interval(F, a, b, **root_accuracy)  # may be []
         roots_all = np.append(roots_all, roots)
 
     ## 4) post-process
@@ -45,20 +45,20 @@ def find_roots(F, xrange):
     return x0, err
 
 
-def subdivide(F, xranges):
+def subdivide(F, xranges, equal_tol=dict()):
     """Recurisvely split intervals of F into intervals with at most one root."""
 
     ranges_new = np.array([[]])  # array of arrays, shape important for concat later!
     for xrange in xranges:  # go over each interval
 
         # further divide (if necessary)
-        extrema = local_extrema(F, xrange)  # find the extrema in this range
+        extrema = local_extrema(F, xrange, equal_tol=equal_tol)  # find the extrema in this range
         if np.array_equal(xrange, extrema):  # same interval came out as we put in
             xranges_i = np.array([xrange])  # done, reshape into column
         else:
             # further divide
             subintervals = split_into_interval(extrema)
-            xranges_i = subdivide(F, subintervals)  # recurse
+            xranges_i = subdivide(F, subintervals, equal_tol=equal_tol)  # recurse
 
         # store
         if xranges_i.size:  # found something
@@ -92,7 +92,7 @@ def equal(a, b, abstol=1e-20, reltol=1e-9, mathlib=math):
     return mathlib.isclose(a, b, **tols)
 
 
-def local_extrema(F, xrange):
+def local_extrema(F, xrange, equal_tol=dict()):
     """Find local extrema, including endpoints.
     
     Returns the extrema in a numpy array.
@@ -111,13 +111,13 @@ def local_extrema(F, xrange):
     # add end points
     if extrema.size > 0:  # at least one extremum found
         # endpoint a
-        if equal(extrema[0], xrange[0]):
+        if equal(extrema[0], xrange[0], **equal_tol):
             extrema[0] = xrange[0]
         else:
             extrema = np.insert(extrema, 0, xrange[0])
         # endpoint b
-        if equal(extrema[-1], xrange[1]) and extrema.size > 1:
-            # size check ensures we keep don't override xrange[0]
+        if equal(extrema[-1], xrange[1], **equal_tol) and extrema.size > 1:
+            # size check ensures we don't override xrange[0]
             extrema[-1] = xrange[1]
         else:
             extrema = np.insert(extrema, extrema.size, xrange[1])

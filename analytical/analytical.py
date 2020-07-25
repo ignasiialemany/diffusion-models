@@ -25,7 +25,7 @@ class Solver:
         evaluate = np.vectorize(lambda xi: F(xi, D=self.D, L=self.L, K=self.K), otypes=[float])
         return evaluate(x)
 
-    def find_eigV(self, max_lambda, zero=0, return_error=False):
+    def find_eigV(self, max_lambda, zero=0, return_error=False, **root_kwargs):
         """Find eigenvalues."""
 
         # input validation
@@ -35,7 +35,7 @@ class Solver:
             raise ValueError('zero < 0')
 
         # calc
-        roots, error = find_roots(self.eval_F, (zero, max_lambda))
+        roots, error = find_roots(self.eval_F, (zero, max_lambda), **root_kwargs)
         if roots[0] != 0:  # roots are sorted, so first one should be zero
             roots = np.insert(roots, 0, 0)  # zero is always a root
         self.eigV = roots
