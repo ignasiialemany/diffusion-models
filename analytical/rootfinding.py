@@ -128,7 +128,7 @@ def local_extrema(F, xrange, equal_tol=dict()):
     return extrema
 
 
-def find_roots_in_interval(F, a, b, abstol=1e-22, reltol=1e-10, maxiter=10):
+def find_roots_in_interval(F, a, b, abstol=1e-22, reltol=1e-10, maxiter=100, warn=True):
     """Find a single root in an interval.
     
     This assumes F only has one root in the inverval (a, b).
@@ -145,7 +145,7 @@ def find_roots_in_interval(F, a, b, abstol=1e-22, reltol=1e-10, maxiter=10):
         fsolve = brentq  # for single root, very robust & fast
         tols = dict(xtol=abstol, rtol=reltol, maxiter=maxiter)
         root, result = fsolve(F, a, b, full_output=True, disp=False, **tols)
-        if not result.converged:
+        if not result.converged and warn:
             warnings.warn("fsolve did not converge in [{0:g},{1:g}]".format(a,b))
         return root
 

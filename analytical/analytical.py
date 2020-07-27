@@ -86,6 +86,10 @@ class Solver:
         nthMode = np.arange(0, len(eigM))
         return nSignChanges, nthMode
 
+    def solve(self, t, xq, idx0, eigV=None, eigM=None):
+        """Wrapper to calculate the diffusion solution."""
+        return solution_1D(t, xq, idx0, 'arbitrary', lambdas=eigV, nus=eigM)
+
 
 def compute_mode(l, x, D, L, K):
     """Compute the mode corresponding to the eigenvalue.
