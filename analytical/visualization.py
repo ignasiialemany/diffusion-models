@@ -2,9 +2,10 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as mpl_animate
 
 
-def animate_1D(G, t, x, bx, axis=None, xlims=None, ylimsf=[0, 1.1], pause=0.1,
+def animate_1D(G, t, x, bx, axis=None, fig=None, xlims=None, ylimsf=[0, 1.1],
         xlabel='$x$ ($\\mu$m)', ylabel='$G(x,t)$'):
     """Animate a 1D time-varying solution.
     G : (N, M) solution
@@ -12,27 +13,27 @@ def animate_1D(G, t, x, bx, axis=None, xlims=None, ylimsf=[0, 1.1], pause=0.1,
     x : (M) space
     bx : barrier locations
     axis : pyplot axis
+    fig : pyplot figure
     xlims : x-axis limits, optional (endpoints of x)
     ylimsf : y-axis limit factors, optional (0 and 1.1 times max(G))
-    pause : how long pyplot waits between time steps
     xlabel, ylabel: axis labels
     """
 
     # prepare figure
-    if not axis:
+    if axis is None:
         axis = plt.gca()
+    if fig is None:
+        fig = plt.gcf()
     axis.set_xlabel(xlabel)
     axis.set_ylabel(ylabel)
     axis.grid()
-    if xlims:
-        xmin, xmax = xlims
-    else:
-        xmin, xmax = x[0], x[-1]
-    axis.set_xlim(xmin=xmin, xmax=xmax)
+    if xlims is None:
+        xlims = (x[0], x[-1])
+    axis.set_xlim(xlims)
 
     # plot initial data
-    y = np.full(G[0].shape, np.nan)  # nan values, so nothing shows
-    sol = axis.fill_between(x, y, 0, label='Semi-analytical', fc='r', ec='r', alpha=0.5)
+    fill = axis.fill_between([], [], # empty data
+                             label='Semi-analytical', fc='r', ec='r', alpha=0.5)
 
     # show barriers
     if len(bx):
@@ -44,22 +45,28 @@ def animate_1D(G, t, x, bx, axis=None, xlims=None, ylimsf=[0, 1.1], pause=0.1,
 
     # add legend
     if lines:
-        axis.legend((sol, lines[0]), ('Solution', 'Interfaces'))
+        axis.legend((fill, lines[0]), ('Solution', 'Interfaces'))
     else:
-        axis.legend((sol), ('Solution'))
+        axis.legend((fill), ('Solution'))
 
-    # time loop
-    for n, (tn, Gn) in enumerate(zip(t, G)):
+    # data
+    data = list(zip(t, G))
+    def update_fill(n, y0=0):
 
-        # update plot
-        xy = list(map(list, zip(x, Gn)))
-        xy.append([x[-1], 0])
-        xy.append([x[0], 0])
-        verts = [xy]  # only one list
-        sol.set_verts(verts, False)  # data
-        ymin, ymax = np.array(ylimsf)*np.max(Gn)
+        tn, yn = data[n]
+
+        ymin, ymax = np.array(ylimsf)*np.max(yn)
         axis.set_ylim(ymin=ymin, ymax=ymax)  # dynamic limit
-        axis.set_title('$t_{{{1:d}}} = {0:g}$ms'.format(tn, n))  # :3.f
+        axis.set_title('$t_{{{1:d}}} = {0:g}$ms'.format(tn, n))
 
-        # show
-        plt.pause(pause)
+        xy = list(map(list, zip(x, yn)))
+        xy.append([x[-1], y0])
+        xy.append([x[0], y0])
+        verts = [xy]  # only one list
+        fill.set_verts(verts, False)  # data
+        return fill
+
+    # make animation
+    opts = dict(repeat=False, blit=False)
+    animation = mpl_animate.FuncAnimation(fig, update_fill, frames=len(data), **opts)
+    return animation
