@@ -1,4 +1,4 @@
 numpy
 scipy
-chebpy
 matplotlib
+git+git://github.com/chebpy/chebpy.git
