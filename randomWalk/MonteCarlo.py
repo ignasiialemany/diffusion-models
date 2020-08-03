@@ -1,114 +1,107 @@
 # This class will run the main algorithm.
 
-from randomWalk.Walker import *
 import numpy as np
+
 
 class MonteCarlo:
 
     def __init__(self, nP):
-        #Initialize particles
-        self.particles = []
         self.nP = nP
-        # Init the number of particles
-        for i in range(self.nP):
-            self.particles.append(Walker())
+        # Instead of initializing Walker class we initialize positions/index
+        self.position = np.zeros(nP)
+        self.indices = np.zeros(nP)
 
-    def seedWalkersSpecificLocation(self,x0,domain):
-        #Seeds walkers in a specific location
+    def seedWalkersSpecificLocation(self, x0, domain):
         self.domain = domain
-        for i in range(len(self.particles)):
-            self.particles[i].position=x0
+        self.position.fill(x0)
 
     def seedWalkersInGeometry(self, domain):
-        #Seed walkers randomly in the domain
+        # Seed walkers randomly in the domain
         self.domain = domain
-        for i in range(len(self.particles)):
-            self.particles[i].position = (np.random.uniform(0, 1) * domain.length) + domain.xCoordinates[0]
+        self.position = np.random.uniform(0, 1, self.nP) * self.domain.length
 
-    def locateIndex(self, pos):
-        #Locates index cell from a certain position
-        closestBarrier = min(self.domain.barriers_position,
-                             key=lambda x: abs(x - pos))  # O(n) could be improved to O(lgN) with binary search
-        if pos > closestBarrier:
-            return list(self.domain.barriers_position).index(closestBarrier)
-        else:
-            return list(self.domain.barriers_position).index(closestBarrier) - 1
+    def locateIndex(self):
+        # This one works but we will need to loop through the entire vector. Maybe vectorize is faster than loop?
+        for i in range(len(self.domain.barriers_position) - 1):
+            leftBarrier = self.domain.barriers_position[i]
+            rightBarrier = self.domain.barriers_position[i + 1]
+            index = np.where((self.position <= rightBarrier) & (self.position >= leftBarrier))[0]
+            self.indices[index] = i
 
-    def locateWalkers(self):
-        # Locate walkers inside the domain
-        # Total Complexity O(numberParticles*numberOfBarriers)
-        for i in range(len(self.particles)):
-            pos = self.particles[i].position
-            self.particles[i].index = self.locateIndex(pos)
-
-    def runAlgorithm(self, T,dT, transit_model):
-        time=0
-        while(time<=T):
+    def runAlgorithm(self, T, dT, transit_model):
+        time = 0
+        while (time <= T):
             self.allWalkersOneStep(dT, transit_model)
             time += dT
             if (time > T):
-                self.allWalkersOneStep(time-T, transit_model)
+                self.allWalkersOneStep(time - T, transit_model)
                 break
 
-    def checkWalkersLocation(self,x0):
-        counterRight=0
-        counterLeft=0
-        counterx0=0
-        for i in range(len(self.particles)):
-            dx = (self.particles[i].position-x0)
-            if(dx>0):
-                counterRight+=1
-            elif(dx<0):
-                counterLeft+=1
-            else:
-                counterx0+=1
+    def crossesBarrier(self, dx, P, D, transit_model):
+        return transit_model(np.abs(dx), P, D)
 
-    def allWalkersOneStep(self,dt,transit_model):
-        # 1 - Walkers that go out of the boundaries. Should I reflect them into the domain or create a buffer?
-        for i in range(len(self.particles)):
-            pos = self.particles[i].position
-            indexCell = self.particles[i].index
-            D = self.domain.diffusivity[indexCell]
-            P = self.domain.permeability[indexCell]
-            s = self.particles[i].stepWalker(D, dt)
-            newIndex = self.locateIndex(s + pos)
-            crosses = False
-            if newIndex != indexCell:
-                lowerBoundBarrier = self.domain.barriers_position[indexCell]
-                upperBoundBarrier = self.domain.barriers_position[indexCell+1]
-                barrier_pos = self.computeIntersection(lowerBoundBarrier,upperBoundBarrier,s+pos)
-                walker_transit_probability = self.particles[i].transitProbability()
-                distance_pos_to_barrier = abs(barrier_pos - pos)
-                distance_barrier_to_target = abs((s + pos) -barrier_pos)
-                probability_crossing = transit_model(distance_pos_to_barrier, P, D)
-                if probability_crossing == 1:
-                    crosses = True
-                elif probability_crossing == 0:
-                    crosses = False
-                else:
-                    crosses = walker_transit_probability <= probability_crossing
-                if crosses:
-                    self.particles[i].index = newIndex
-                    self.particles[i].position = s + pos
-                else:
-                    self.particles[i].index = indexCell
-                    if pos < barrier_pos:
-                        self.particles[i].position = barrier_pos - distance_barrier_to_target
-                    else:
-                        self.particles[i].position = barrier_pos + distance_barrier_to_target
-            else:
-                self.particles[i].index = indexCell
-                self.particles[i].position = s + pos
+    def allWalkersOneStep(self, dt, transit_model):
+        for i in range(len(self.domain.barriers_position) - 1):
 
+            leftBarrier = self.domain.barriers_position[i]
+            rightBarrier = self.domain.barriers_position[i + 1]
+
+            #Walkers that are in the compartment
+            indexWalkersToStep = np.where(self.indices == i)[0]
+            step = np.random.normal(0, 1, len(indexWalkersToStep)) * np.sqrt(self.domain.diffusivity[i] * 2 * dt)
+
+            # Walkers that advance to the following step
+            new_pos = self.position[indexWalkersToStep] + step
+
+            rightWalkersCross = indexWalkersToStep[np.where((new_pos > rightBarrier))[0]]
+            leftWalkersCross = indexWalkersToStep[np.where((new_pos< leftBarrier))[0]]
+
+
+            # Analyze left cross/reflection or right cross/reflection
+            if len(rightWalkersCross) + len(leftWalkersCross) != 0:
+
+                self.position[indexWalkersToStep] += step
+
+                dxLeft = leftBarrier - self.position[leftWalkersCross]
+                dxRight = self.position[rightWalkersCross] - rightBarrier
+
+
+                leftProbabilityCross = self.crossesBarrier(dxLeft, self.domain.permeability[i],
+                                                           self.domain.diffusivity[i], transit_model)
+
+                leftWalkerProbability = np.random.uniform(0, 1, len(dxLeft))
+                rightProbabilityCross = self.crossesBarrier(dxRight, self.domain.permeability[i + 1],
+                                                            self.domain.diffusivity[i], transit_model)
+                rightWalkerProbability = np.random.uniform(0, 1, len(dxRight))
+
+                leftParticlesReflect = np.where((leftProbabilityCross == 0) | (leftProbabilityCross < leftWalkerProbability))[0]
+                rightParticlesReflect = np.where((rightProbabilityCross == 0) | (rightProbabilityCross < rightWalkerProbability))[0]
+
+                self.position[leftWalkersCross[leftParticlesReflect]] = leftBarrier \
+                                                                        +dxLeft[leftParticlesReflect]
+
+
+                self.position[rightWalkersCross[rightParticlesReflect]] = rightBarrier\
+                                                                          -dxRight[rightParticlesReflect]
+
+
+                #leftWalkersCross = leftWalkersCross[np.in1d(range(len(leftWalkersCross)),leftParticlesReflect)]
+                #rightWalkersCross = rightWalkersCross[np.in1d(range(len(rightWalkersCross)),rightParticlesReflect)]
+                leftWalkersCross = np.delete(leftWalkersCross, leftParticlesReflect)
+                rightWalkersCross = np.delete(rightWalkersCross, rightParticlesReflect)
+
+                self.indices[leftWalkersCross] -= 1
+                self.indices[rightWalkersCross] += 1
+
+            else:
+
+                self.position[indexWalkersToStep] = new_pos
 
     def getWalkerPositions(self):
-        finalPositions = []
-        for i in range (len(self.particles)):
-            finalPositions.append(self.particles[i].position)
-        return finalPositions
+        return self.position
 
-    def computeIntersection(self,lower,upper,nextPos):
-        if nextPos>upper:
+    def computeIntersection(self, lower, upper, nextPos):
+        if nextPos > upper:
             return upper
         else:
             return lower
