@@ -70,11 +70,11 @@ def subdivide(F, xranges, equal_tol=dict()):
     return ranges_new
 
 
-def equal(a, b, abstol=1e-20, reltol=1e-9, mathlib=math):
+def equal(a, b, abstol=1e-16, reltol=0, mathlib=math):
     """Check if two values are equal.
 
-    If exact=True, we do an exact check for equality. This can cause problems!
-    If exact=False, we use isclose with abstol=1e-20, reltol=1e-9.
+    By default, we test with (absolute) tolerances. This can be changed as desired.
+    For exact equality, set abstol=reltol=0.
 
     mathlib allows to specify the module from which isclose should be used: numpy, math, or custom.
     A custom module needs to implement .__name__ and .isclose(a, b, abstol=__, reltol=__)
@@ -106,7 +106,8 @@ def local_extrema(F, xrange, equal_tol=dict()):
     cheb = chebfun(F, xrange)  # automatically constructed
     dcheb = cheb.diff()
     extrema = dcheb.roots()
-    extrema = np.array(extrema)  # convert
+    extrema = np.sort(extrema)  # sort into numpy array
+    extrema = np.clip(extrema, *xrange)  # in case numerical error puts it just outside
 
     # add end points
     if extrema.size > 0:  # at least one extremum found

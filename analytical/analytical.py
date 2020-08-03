@@ -1,10 +1,12 @@
 """Definition of the analytical solution."""
 
 from math import sqrt, isinf, sin, cos
+from functools import partial
 
 import numpy as np
 
 from .rootfinding import find_roots
+from .diffusion import solution_1D
 
 
 class Solver:
@@ -22,7 +24,8 @@ class Solver:
     def eval_F(self, x):
         """Evaluate the function F(x)."""
         # no requirements on x, will evaluate any shape and value
-        evaluate = np.vectorize(lambda xi: F(xi, D=self.D, L=self.L, K=self.K), otypes=[float])
+        fun = partial(F, D=self.D, L=self.L, K=self.K)  # is now fun(x)
+        evaluate = np.vectorize(fun, otypes=[float])
         return evaluate(x)
 
     def find_eigV(self, max_lambda, zero=0, return_error=False, **root_kwargs):
@@ -62,7 +65,8 @@ class Solver:
         xq = np.array(xq)
 
         # calculate
-        eigM = np.array([compute_mode(ev, xq, D=self.D, L=self.L, K=self.K) for ev in eigV])
+        mode = partial(compute_mode, xq=xq, D=self.D, L=self.L, K=self.K)
+        eigM = np.array([mode(ev) for ev in eigV])
         self.eigM = eigM
         return eigM
 
@@ -106,8 +110,6 @@ def compute_mode(l, x, D, L, K):
     sqrt_D = np.sqrt(D)
     r = 1/K[1:-1]  # internal resistance
     barriers = np.cumsum(np.insert(L, 0, 0))  # positions starting from zero
-
-    ########## compute the mode
 
     # initialise at left boundary
     K_L = K[0]  # rename
