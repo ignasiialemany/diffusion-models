@@ -99,9 +99,3 @@ class MonteCarlo:
 
     def getWalkerPositions(self):
         return self.position
-
-    def computeIntersection(self, lower, upper, nextPos):
-        if nextPos > upper:
-            return upper
-        else:
-            return lower
