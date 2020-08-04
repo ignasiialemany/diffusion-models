@@ -8,6 +8,8 @@ class Domain:
         self.length = sum(lengths)
         self.diffusivity = diffusivities
         self.permeability = permeability
+        self.diffusivity=np.array(self.diffusivity)
+        self.permeability = np.array(self.permeability)
 
         #When creating the domain those are computed
         self.barriers_position=[]
