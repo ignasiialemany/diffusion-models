@@ -65,7 +65,7 @@ class Solver:
         xq = np.array(xq)
 
         # calculate
-        mode = partial(compute_mode, xq=xq, D=self.D, L=self.L, K=self.K)
+        mode = partial(compute_mode, x=xq, D=self.D, L=self.L, K=self.K)
         eigM = np.array([mode(ev) for ev in eigV])
         self.eigM = eigM
         return eigM
@@ -92,6 +92,8 @@ class Solver:
 
     def solve(self, t, xq, idx0, eigV=None, eigM=None):
         """Wrapper to calculate the diffusion solution."""
+        eigV = eigV if eigV is not None else self.eigV
+        eigM = eigM if eigM is not None else self.eigM
         return solution_1D(t, xq, idx0, 'arbitrary', lambdas=eigV, nus=eigM)
 
 
