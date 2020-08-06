@@ -25,7 +25,6 @@ class MonteCarlo:
 
     def locateIndex(self):
         indices=np.zeros(self.nP,dtype=int)
-        # This one works but we will need to loop through the entire vector. Maybe vectorize is faster than loop?
         for i in range(len(self.domain.barriers_position) - 1):
             leftBarrier = self.domain.barriers_position[i]
             rightBarrier = self.domain.barriers_position[i + 1]
@@ -42,28 +41,36 @@ class MonteCarlo:
                 self.allWalkersOneStep(time - T, transit_model)
                 break
 
-    def crossesBarrier(self, dx, P, D, transit_model):
-        walkerProbability = np.random.uniform(0,1,len(dx))
-        transitProbability = np.array(transit_model(np.abs(dx), P, D))
-        crosses = (transitProbability == 1) | (walkerProbability <= transitProbability)
-        return crosses
+    def crossesBarrier(self, d_before, d_after, P, D_i, D_j, transit_model):
+
+        crosses,modifiedStep = transit_model.crosses(d_before,d_after,D_i,D_j,P)
+        return crosses,modifiedStep
 
     def allWalkersOneStep(self, dt, transit_model):
         step = np.random.normal(0, 1, len(self.position)) * np.sqrt(self.domain.diffusivity[self.indices] * 2 * dt)
+        initPos = self.position
         self.position += step
+
+        #Periodic boundary conditions
+        #np.where(self.position > self.domain.length,self.position-self.domain.length,self.position)
+        #np.where(self.position < 0, self.domain.length - np.abs(self.position), self.position)
+
         newIndices = self.locateIndex()
         interacting = self.indices != newIndices
-        pos_interact = self.position[interacting]
-        barrier_index = np.where(step > 0, newIndices, self.indices)[interacting]
-        dx = np.abs(self.domain.barriers_position[barrier_index] - pos_interact)
-        crosses = self.crossesBarrier(dx, self.domain.permeability[barrier_index],
-                                      self.domain.diffusivity[self.indices][interacting], transit_model)
-        pos_reflect = -1 * np.sign(step[interacting]) * dx + self.domain.barriers_position[barrier_index]
-        pos_pass = pos_interact
-        pos_new = np.where(crosses, pos_pass, pos_reflect)
-        new_indices = np.where(crosses, newIndices[interacting], self.indices[interacting])
-        self.position[interacting] = pos_new
-        self.indices[interacting] = new_indices
+        if np.any(interacting):
+            pos_interact = self.position[interacting]
+            barrier_index = np.where(step > 0, newIndices, self.indices)[interacting]
+            d_after = np.abs(self.domain.barriers_position[barrier_index] - pos_interact)
+            d_before = np.abs(self.domain.barriers_position[barrier_index] - initPos[interacting])
+            crosses,modifiedStep = self.crossesBarrier(d_before, d_after, self.domain.permeability[barrier_index], self.domain.diffusivity[self.indices][interacting],
+                                          self.domain.diffusivity[newIndices][interacting], transit_model)
+
+            pos_reflect = -1 * np.sign(step[interacting]) * modifiedStep + self.domain.barriers_position[barrier_index]
+            pos_pass = pos_interact
+            pos_new = np.where(crosses, pos_pass, pos_reflect)
+            new_indices = np.where(crosses, newIndices[interacting], self.indices[interacting])
+            self.position[interacting] = pos_new
+            self.indices[interacting] = new_indices
 
     def getWalkerPositions(self):
         return self.position
