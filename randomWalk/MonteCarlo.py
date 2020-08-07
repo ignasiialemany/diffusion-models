@@ -24,12 +24,15 @@ class MonteCarlo:
         self.indices = self.locateIndex()
 
     def locateIndex(self):
-        indices=np.zeros(self.nP,dtype=int)
+        #Negative positions are located at 0
+        indices=np.zeros(self.nP, dtype=int)
         for i in range(len(self.domain.barriers_position) - 1):
             leftBarrier = self.domain.barriers_position[i]
             rightBarrier = self.domain.barriers_position[i + 1]
             index = np.where((self.position <= rightBarrier) & (self.position >= leftBarrier))[0]
             indices[index] = i
+        #Positions that are out of the domain are located at the last compartment
+        indices[np.where(self.position>self.domain.length)[0]]=(self.domain.numberOfCompartments)-1
         return indices
 
     def runAlgorithm(self, T, dT, transit_model):
@@ -42,21 +45,16 @@ class MonteCarlo:
                 break
 
     def crossesBarrier(self, d_before, d_after, P, D_i, D_j, transit_model):
-
         crosses,modifiedStep = transit_model.crosses(d_before,d_after,D_i,D_j,P)
         return crosses,modifiedStep
 
     def allWalkersOneStep(self, dt, transit_model):
         step = np.random.normal(0, 1, len(self.position)) * np.sqrt(self.domain.diffusivity[self.indices] * 2 * dt)
-        initPos = self.position
+        initPos = self.position.copy()
         self.position += step
-
-        #Periodic boundary conditions
-        #np.where(self.position > self.domain.length,self.position-self.domain.length,self.position)
-        #np.where(self.position < 0, self.domain.length - np.abs(self.position), self.position)
-
         newIndices = self.locateIndex()
         interacting = self.indices != newIndices
+
         if np.any(interacting):
             pos_interact = self.position[interacting]
             barrier_index = np.where(step > 0, newIndices, self.indices)[interacting]
