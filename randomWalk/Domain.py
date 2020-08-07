@@ -13,7 +13,7 @@ class Domain:
 
         #When creating the domain those are computed
         self.barriers_position=[]
-        self.numberOfCompartments = 0
+        self.numberOfCompartments = len(diffusivities)
         self.createDomain()
 
     def createDomain(self):
