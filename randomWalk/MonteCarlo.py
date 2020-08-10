@@ -24,15 +24,13 @@ class MonteCarlo:
         self.indices = self.locateIndex()
 
     def locateIndex(self):
-        #Negative positions are located at 0
-        indices=np.zeros(self.nP, dtype=int)
+        #Default value when walkers are out of the domain
+        indices=np.array([-1] * self.nP, dtype=int)
         for i in range(len(self.domain.barriers_position) - 1):
             leftBarrier = self.domain.barriers_position[i]
             rightBarrier = self.domain.barriers_position[i + 1]
             index = np.where((self.position <= rightBarrier) & (self.position >= leftBarrier))[0]
             indices[index] = i
-        #Positions that are out of the domain are located at the last compartment
-        indices[np.where(self.position>self.domain.length)[0]]=(self.domain.numberOfCompartments)-1
         return indices
 
     def runAlgorithm(self, T, dT, transit_model):
@@ -54,10 +52,12 @@ class MonteCarlo:
         self.position += step
         newIndices = self.locateIndex()
         interacting = self.indices != newIndices
-
         if np.any(interacting):
             pos_interact = self.position[interacting]
-            barrier_index = np.where(step > 0, newIndices, self.indices)[interacting]
+            #Correct default value when walkers are out of the domain
+            newIndices[np.where((newIndices == -1) & (self.position>self.domain.length))] = self.domain.numberOfCompartments-1
+            newIndices[np.where((newIndices == -1) & (self.position<0))] = 0
+            barrier_index = np.where(step > 0, self.indices+1, self.indices)[interacting]
             d_after = np.abs(self.domain.barriers_position[barrier_index] - pos_interact)
             d_before = np.abs(self.domain.barriers_position[barrier_index] - initPos[interacting])
             crosses,modifiedStep = self.crossesBarrier(d_before, d_after, self.domain.permeability[barrier_index], self.domain.diffusivity[self.indices][interacting],
