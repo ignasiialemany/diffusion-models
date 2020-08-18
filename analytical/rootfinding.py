@@ -8,35 +8,32 @@ from scipy.optimize import brentq
 from chebpy import chebfun
 
 
-def find_roots(F, xrange, root_accuracy=dict(), equal_tol=dict()):
+def find_roots(F, x_range, root_accuracy=dict(), equal_tol=dict()):
     """Find roots of function in a given range.
 
     Fits `chebfun`s to the function and refines it to find roots
     Usage:
         Inputs:
-            F       : function handle that evaluates F(x)
-            xrange  : [xmin, xmax] range of x over which to search
+            F        : function handle that evaluates F(x)
+            x_range  : [xmin, xmax] range of x over which to search
         Outputs:
             x0  : row vector of x values where F(x) := 0
             err : row vector of F(x) values (== error, since F(x0)===0)
     """
 
-    ## 1) find the extrema of the function, ...
-    # We do this by fitting a single global chebfun to the function over the entire domain
-    e0_x = local_extrema(F, xrange, equal_tol=equal_tol)
+    ## 1) subdivide the function into segments ...
+    # In the first iteration, this fits a single global chebfun to the function over the entire domain.
+    # Next, we recursively subdivide into segments where we expect roots.
+    intervals = subdivide(F, split_into_interval(x_range), equal_tol=equal_tol)  # update intervals
 
-    ## 2) ... subdivide it into segments, ...
-    # Recursively subdivide into segments where we expect roots
-    intervals = subdivide(F, split_into_interval(e0_x), equal_tol=equal_tol)  # update intervals
-
-    ## 3)... and find the roots of the function.
+    ## 2) ... and find the roots of the function.
     # Process each interval to find the local zeros
     roots_all = np.array([])  # empty
     for a, b in intervals:
         roots = find_roots_in_interval(F, a, b, **root_accuracy)  # may be []
         roots_all = np.append(roots_all, roots)
 
-    ## 4) post-process
+    ## 3) post-process
     x0 = np.unique(roots_all)  # sorted
     if x0.size > 0:  # if we found any
         err = F(x0)  # F evaluated at x0 corresponds to the error, since F(x0)===0
@@ -45,29 +42,29 @@ def find_roots(F, xrange, root_accuracy=dict(), equal_tol=dict()):
     return x0, err
 
 
-def subdivide(F, xranges, equal_tol=dict()):
+def subdivide(F, x_ranges, equal_tol=dict()):
     """Recurisvely split intervals of F into intervals with at most one root."""
 
-    ranges_new = np.array([[]])  # array of arrays, shape important for concat later!
-    for xrange in xranges:  # go over each interval
+    x_ranges_new = np.array([[]])  # array of arrays, shape important for concat later!
+    for x_range in x_ranges:  # go over each interval
 
         # further divide (if necessary)
-        extrema = local_extrema(F, xrange, equal_tol=equal_tol)  # find the extrema in this range
-        if np.array_equal(xrange, extrema):  # same interval came out as we put in
-            xranges_i = np.array([xrange])  # done, reshape into column
+        extrema = local_extrema(F, x_range, equal_tol=equal_tol)  # find the extrema in this range
+        if np.array_equal(x_range, extrema):  # same interval came out as we put in
+            x_ranges_i = np.array([x_range])  # done, reshape into column
         else:
             # further divide
             subintervals = split_into_interval(extrema)
-            xranges_i = subdivide(F, subintervals, equal_tol=equal_tol)  # recurse
+            x_ranges_i = subdivide(F, subintervals, equal_tol=equal_tol)  # recurse
 
         # store
-        if xranges_i.size:  # found something
-            if ranges_new.size:  # already has some
-                ranges_new = np.concatenate((ranges_new, xranges_i), 0)
+        if x_ranges_i.size:  # found something
+            if x_ranges_new.size:  # already has some
+                x_ranges_new = np.concatenate((x_ranges_new, x_ranges_i), 0)
             else:  # empty, so initiate with newly found ranges
-                ranges_new = xranges_i
+                x_ranges_new = x_ranges_i
 
-    return ranges_new
+    return x_ranges_new
 
 
 def equal(a, b, abstol=1e-16, reltol=0, mathlib=math):
@@ -92,38 +89,38 @@ def equal(a, b, abstol=1e-16, reltol=0, mathlib=math):
     return mathlib.isclose(a, b, **tols)
 
 
-def local_extrema(F, xrange, equal_tol=dict()):
+def local_extrema(F, x_range, equal_tol=dict()):
     """Find local extrema, including endpoints.
     
     Returns the extrema in a numpy array.
     """
 
     # check that the interval is not degenerate
-    if equal(*xrange, abstol=0, reltol=0):  # exact equality
-        return xrange
+    if equal(*x_range, abstol=0, reltol=0):  # exact equality
+        return x_range
 
     # find extrema
-    cheb = chebfun(F, xrange)  # automatically constructed
+    cheb = chebfun(F, x_range)  # automatically constructed
     dcheb = cheb.diff()
     extrema = dcheb.roots()
     extrema = np.sort(extrema)  # sort into numpy array
-    extrema = np.clip(extrema, *xrange)  # in case numerical error puts it just outside
+    extrema = np.clip(extrema, *x_range)  # in case numerical error puts it just outside
 
     # add end points
     if extrema.size > 0:  # at least one extremum found
         # endpoint a
-        if equal(extrema[0], xrange[0], **equal_tol):
-            extrema[0] = xrange[0]
+        if equal(extrema[0], x_range[0], **equal_tol):
+            extrema[0] = x_range[0]
         else:
-            extrema = np.insert(extrema, 0, xrange[0])
+            extrema = np.insert(extrema, 0, x_range[0])
         # endpoint b
-        if equal(extrema[-1], xrange[1], **equal_tol) and extrema.size > 1:
-            # size check ensures we don't override xrange[0]
-            extrema[-1] = xrange[1]
+        if equal(extrema[-1], x_range[1], **equal_tol) and extrema.size > 1:
+            # size check ensures we don't override x_range[0]
+            extrema[-1] = x_range[1]
         else:
-            extrema = np.insert(extrema, extrema.size, xrange[1])
+            extrema = np.insert(extrema, extrema.size, x_range[1])
     else:
-        extrema = np.array(xrange)
+        extrema = np.array(x_range)
 
     # done
     return extrema
@@ -154,5 +151,5 @@ def find_roots_in_interval(F, a, b, abstol=1e-22, reltol=1e-10, maxiter=100, war
 def split_into_interval(x):
     """Divide points into intervals."""
 
-    intervals = np.column_stack((x[0:-1], x[1:]))  # two columns
+    intervals = np.column_stack((x[:-1], x[1:]))  # two columns
     return intervals
