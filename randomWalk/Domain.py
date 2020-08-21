@@ -1,22 +1,38 @@
-#This is a class that will contain the 1D geometry.
+import warnings
+
 import numpy as np
+from property_cached import cached_property
+
 
 class Domain:
 
-    def __init__(self,lengths,diffusivities,permeability):
-        self.lengthVector = lengths
-        self.length = sum(lengths)
-        self.diffusivity = diffusivities
-        self.permeability = permeability
-        self.diffusivity=np.array(self.diffusivity)
-        self.permeability = np.array(self.permeability)
+    def __init__(self, diffusivities, lengths, permeabilities):
+        self.lengths = np.array(lengths)
+        self.diffusivities = np.array(diffusivities)
+        self.permeabilities = np.array(permeabilities)
 
-        #When creating the domain those are computed
-        self.barriers_position=[]
-        self.numberOfCompartments = len(diffusivities)
-        self.createDomain()
+    @property
+    def N(self):
+        return len(self.lengths)
 
-    def createDomain(self):
-        #Coordinates in x
-        self.barriers_position = np.concatenate((np.zeros(1), np.cumsum(self.lengthVector)))
-        self.numberOfCompartments = len(self.lengthVector)
+    @cached_property
+    def barriers(self):
+        return np.append(0, np.cumsum(self.lengths))
+
+    @cached_property
+    def total_length(self):
+        return np.sum(self.lengths)
+
+    def locate(self, positions, **kwargs):
+        return locate_inside(positions, self.barriers, **kwargs)
+
+
+def locate_inside(positions, barriers, verify=False):
+    N = positions.size
+    indices = np.full(N, -1, dtype=int)  # -1 = default for out-of-bounds
+    idx, inside = np.where((positions >= barriers[:-1, np.newaxis]) &
+                           (positions <= barriers[1:, np.newaxis]))
+    indices[inside] = idx  # this also handles the case where pos==barrier
+    if verify and inside.size != N:
+        warnings.warn("Some walkers are located outside the domain, index = -1")
+    return indices
