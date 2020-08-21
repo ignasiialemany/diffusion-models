@@ -1,4 +1,4 @@
 numpy
 scipy
 matplotlib
-git+git://github.com/chebpy/chebpy.git
+git+https://github.com/janniklasrose/chebpy.git@adaptive#egg=chebpy
