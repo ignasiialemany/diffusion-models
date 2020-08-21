@@ -45,7 +45,7 @@ class MonteCarlo:
 
         # calculate the step
         D_current = self.domain.diffusivities[self.indices]
-        step = np.random.normal(0, 1, self.N) * np.sqrt(2*D_current*dt)
+        step = np.array([-1,+1])[np.random.choice(2, self.N)] * np.sqrt(2*D_current*dt)
 
         # old and new state
         old_pos = self.position
