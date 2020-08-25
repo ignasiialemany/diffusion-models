@@ -95,10 +95,10 @@ class Solver:
         return solution_1D(t, xq, idx0, 'arbitrary', lambdas=eigV, nus=eigM)
 
 
-def compute_mode(l, x, domain):
+def compute_mode(lambda_, x, domain):
     """Compute the mode corresponding to the eigenvalue.
 
-    l := (1) lambda, eigenvalue
+    lambda_ := (1) lambda, eigenvalue
     x := (M) query points at which to compute the modes
     domain := Domain object with (N) compartments and (N+1) barriers
     """
@@ -107,7 +107,7 @@ def compute_mode(l, x, domain):
     L, D, K = domain.lengths, domain.diffusivities, domain.permeabilities
 
     # pre-compute
-    sqrt_lambda = np.sqrt(l)
+    sqrt_lambda = np.sqrt(lambda_)
     sqrt_D = np.sqrt(D)
     r = 1/K[1:-1]  # internal resistance
     barriers = domain.barriers
@@ -168,11 +168,11 @@ def left_BC(sqrt_lambda, sqrt_D_0, K_L):
     return y
 
 
-def right_BC(y, sqrt_lambda, sqrt_D_m, l_m, K_R):
+def right_BC(y, sqrt_lambda, sqrt_D_m, L_m, K_R):
     """Apply boundary condition at the right edge of the domain."""
 
     # pre-compute
-    val = sqrt_lambda/sqrt_D_m*l_m
+    val = sqrt_lambda/sqrt_D_m*L_m
     sin_val = sin(val)
     cos_val = cos(val)
 
@@ -187,11 +187,11 @@ def right_BC(y, sqrt_lambda, sqrt_D_m, l_m, K_R):
     return F
 
 
-def internal_BC(y, sqrt_lambda, sqrt_D_i, sqrt_D_ip1, l_i, K_i):
+def internal_BC(y, sqrt_lambda, sqrt_D_i, sqrt_D_ip1, L_i, K_i):
     """Apply internal boundary condition linking the sub-domains."""
 
     # pre-compute
-    val = l_i*sqrt_lambda/sqrt_D_i
+    val = L_i*sqrt_lambda/sqrt_D_i
     sin_val = sin(val)
     cos_val = cos(val)
     rlD = (1/K_i)*sqrt_lambda*sqrt_D_i
@@ -207,10 +207,10 @@ def internal_BC(y, sqrt_lambda, sqrt_D_i, sqrt_D_ip1, l_i, K_i):
     return y
 
 
-def F(eta, domain):
-    """Function definition of F(eta).
+def F(lambda_, domain):
+    """Function definition of F(lambda).
 
-    eta := (1) eta, x-variable of F
+    lambda_ := (1) lambda, x-variable of F
     domain := Domain object with (N) compartments and (N+1) barriers
     """
 
@@ -218,7 +218,7 @@ def F(eta, domain):
     L, D, K = domain.lengths, domain.diffusivities, domain.permeabilities
 
     # pre-calc
-    sqrt_lambda = sqrt(eta)
+    sqrt_lambda = sqrt(lambda_)
     nCompartments = domain.N
 
     y = [0, 0]
