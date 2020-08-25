@@ -34,6 +34,9 @@ class Solver:
             raise ValueError('max_lambda < zero')
         if zero < 0:
             raise ValueError('zero < 0')
+        K_ends = self.domain.permeabilities[[0, -1]]
+        if zero == 0 and not (K_ends[0] == 0 and K_ends[-1] == 0):
+            raise ValueError('zero=0 not supported for non-zero permeabilities at domain ends')
 
         # calc
         roots, error = find_roots(self.eval_F, (zero, max_lambda), **root_kwargs)
@@ -142,11 +145,9 @@ def compute_mode(lambda_, x, domain):
             V = np.matmul(M_k_kp1, V)
 
     # normalise the eigenmode
-    Norm = np.sqrt(np.trapz(y**2, x))  # accounts for variable x spacing
-    eigenMode = y/Norm
+    norm = np.sqrt(np.trapz(y**2, x))
+    eigenMode = y/norm
 
-    # Correct last value that is zero by symmetry
-    eigenMode[-1] = eigenMode[-2]
     return eigenMode
 
 
@@ -161,8 +162,8 @@ def left_BC(sqrt_lambda, sqrt_D_0, K_L):
         y[0] = 0
         y[1] = 1
     else:  # K_L is real - Neumann condition
-        y[0] = sqrt_lambda*sqrt_D_0
-        y[1] = K_L
+        y[0] = sqrt_lambda*sqrt_D_0  # 1
+        y[1] = K_L  # K_L/(sqrt_lambda*sqrt_D_0)
 
     # done
     return y
@@ -172,7 +173,7 @@ def right_BC(y, sqrt_lambda, sqrt_D_m, L_m, K_R):
     """Apply boundary condition at the right edge of the domain."""
 
     # pre-compute
-    val = sqrt_lambda/sqrt_D_m*L_m
+    val = L_m*sqrt_lambda/sqrt_D_m
     sin_val = sin(val)
     cos_val = cos(val)
 
@@ -180,8 +181,8 @@ def right_BC(y, sqrt_lambda, sqrt_D_m, L_m, K_R):
     if isinf(K_R):  # Dirichlet condition
         F = cos_val*y[0] + sin_val*y[1]
     else:  # K_R is real - Neumann condition
-        F = ( K_R*(cos_val*y[0] + sin_val*y[1])
-            + sqrt_lambda*sqrt_D_m*(-sin_val*y[0] + cos_val*y[1]) )
+        F = ( K_R * (cos_val*y[0] + sin_val*y[1])  # K_R/(sqrt_lambda*sqrt_D_m)
+            + sqrt_lambda*sqrt_D_m * (-sin_val*y[0] + cos_val*y[1]))  # 1
 
     # done
     return F
@@ -221,7 +222,6 @@ def F(lambda_, domain):
     sqrt_lambda = sqrt(lambda_)
     nCompartments = domain.N
 
-    y = [0, 0]
     y = left_BC(sqrt_lambda, sqrt(D[0]), K[0])
     for i in range(nCompartments-1):
         y = internal_BC(y, sqrt_lambda, sqrt(D[i]), sqrt(D[i+1]), L[i], K[i+1])
