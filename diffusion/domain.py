@@ -7,9 +7,17 @@ from property_cached import cached_property
 class Domain:
 
     def __init__(self, lengths, diffusivities, permeabilities):
+        # store
         self.lengths = np.array(lengths)
         self.diffusivities = np.array(diffusivities)
         self.permeabilities = np.array(permeabilities)
+        # verify size of arrays
+        if len(self.lengths) != len(self.diffusivities):
+            raise Exception("Inconsistent size of 'lengths' and 'diffusivities'")
+        if len(self.permeabilities) == len(self.lengths)-1:  # default impermeable ends
+            self.permeabilities = np.append(0, np.append(self.permeabilities, 0))
+        elif len(self.permeabilities) != len(self.lengths)+1:
+            raise Exception("Inconsistent size of 'lengths' and 'permeabilities'")
 
     @property
     def N(self):
