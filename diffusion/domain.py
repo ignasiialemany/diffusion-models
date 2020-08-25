@@ -6,7 +6,7 @@ from property_cached import cached_property
 
 class Domain:
 
-    def __init__(self, diffusivities, lengths, permeabilities):
+    def __init__(self, lengths, diffusivities, permeabilities):
         self.lengths = np.array(lengths)
         self.diffusivities = np.array(diffusivities)
         self.permeabilities = np.array(permeabilities)

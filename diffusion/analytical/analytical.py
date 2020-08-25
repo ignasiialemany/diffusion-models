@@ -11,12 +11,10 @@ from .diffusion import solution_1D
 
 class Solver:
 
-    def __init__(self, diffusivities, lengths, permeabilities):
+    def __init__(self, domain):
 
-        # store as numpy array
-        self.D = np.array(diffusivities)
-        self.L = np.array(lengths)
-        self.K = np.array(permeabilities)
+        # store domain object
+        self.domain = domain
 
         self.eigV = None
         self.eigM = None
@@ -24,7 +22,7 @@ class Solver:
     def eval_F(self, x):
         """Evaluate the function F(x)."""
         # no requirements on x, will evaluate any shape and value
-        fun = partial(F, D=self.D, L=self.L, K=self.K)  # is now fun(x)
+        fun = partial(F, domain=self.domain)  # is now fun(x)
         evaluate = np.vectorize(fun, otypes=[float])
         return evaluate(x)
 
@@ -65,7 +63,7 @@ class Solver:
         xq = np.array(xq)
 
         # calculate
-        mode = partial(compute_mode, x=xq, D=self.D, L=self.L, K=self.K)
+        mode = partial(compute_mode, x=xq, domain=self.domain)  # is now mode(eVal)
         eigM = np.array([mode(ev) for ev in eigV])
         self.eigM = eigM
         return eigM
@@ -97,21 +95,22 @@ class Solver:
         return solution_1D(t, xq, idx0, 'arbitrary', lambdas=eigV, nus=eigM)
 
 
-def compute_mode(l, x, D, L, K):
+def compute_mode(l, x, domain):
     """Compute the mode corresponding to the eigenvalue.
 
     l := (1) lambda, eigenvalue
     x := (M) query points at which to compute the modes
-    D := (N) compartment diffusivities
-    L := (N) compartment lengths
-    K := (N+1) membrane permeabilities
+    domain := Domain object with (N) compartments and (N+1) barriers
     """
+
+    # extract shorthand for domain parameters
+    L, D, K = domain.lengths, domain.diffusivities, domain.permeabilities
 
     # pre-compute
     sqrt_lambda = np.sqrt(l)
     sqrt_D = np.sqrt(D)
     r = 1/K[1:-1]  # internal resistance
-    barriers = np.cumsum(np.insert(L, 0, 0))  # positions starting from zero
+    barriers = domain.barriers
 
     # initialise at left boundary
     K_L = K[0]  # rename
@@ -125,9 +124,10 @@ def compute_mode(l, x, D, L, K):
     y = np.zeros(x.size)
     N = L.size
 
+    indices = domain.locate(x)  # compartment index for each x location
     for i in range(N):  # for each compartment
 
-        idxs = np.logical_and(x >= barriers[i], x < barriers[i+1])  # inside this compartment
+        idxs = indices == i  # inside this compartment
         val_ra = sqrt_lambda/sqrt_D[i] * (x[idxs]-barriers[i])
         y[idxs] = np.cos(val_ra)*V[0] \
                 + np.sin(val_ra)*V[1]
@@ -207,18 +207,19 @@ def internal_BC(y, sqrt_lambda, sqrt_D_i, sqrt_D_ip1, l_i, K_i):
     return y
 
 
-def F(eta, D, L, K):
+def F(eta, domain):
     """Function definition of F(eta).
 
     eta := (1) eta, x-variable of F
-    D := (N) compartment diffusivities
-    L := (N) compartment lengths
-    K := (N+1) membrane permeabilities (including domain end)
+    domain := Domain object with (N) compartments and (N+1) barriers
     """
+
+    # extract shorthand for domain parameters
+    L, D, K = domain.lengths, domain.diffusivities, domain.permeabilities
 
     # pre-calc
     sqrt_lambda = sqrt(eta)
-    nCompartments = len(D)
+    nCompartments = domain.N
 
     y = [0, 0]
     y = left_BC(sqrt_lambda, sqrt(D[0]), K[0])
