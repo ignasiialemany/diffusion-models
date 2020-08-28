@@ -1,4 +1,0 @@
-numpy
-scipy
-matplotlib
-git+https://github.com/chebpy/chebpy.git
