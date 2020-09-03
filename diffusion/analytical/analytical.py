@@ -35,14 +35,15 @@ class Solver:
         if zero < 0:
             raise ValueError('zero < 0')
         K_ends = self.domain.permeabilities[[0, -1]]
-        if zero == 0 and not (K_ends[0] == 0 and K_ends[-1] == 0):
+        is_noflux = K_ends[0] == 0 and K_ends[-1] == 0  # zero-flux domain ends
+        if not is_noflux and zero == 0:
             raise ValueError('zero=0 not supported for non-zero permeabilities at domain ends')
 
         # calc
         roots, error = find_roots(self.eval_F, (zero, max_lambda), **root_kwargs)
-        if roots[0] != 0:  # roots are sorted, so first one should be zero
+        if is_noflux and roots[0] != 0:  # roots are sorted, so first one should be zero
             roots = np.insert(roots, 0, 0)  # zero is always a root
-        self.eigV = roots
+        self.eigV = roots.copy()
         if return_error:
             return roots, error
         else:
@@ -68,7 +69,7 @@ class Solver:
         # calculate
         mode = partial(compute_mode, x=xq, domain=self.domain)  # is now mode(eVal)
         eigM = np.array([mode(ev) for ev in eigV])
-        self.eigM = eigM
+        self.eigM = eigM.copy()
         return eigM
 
     def verify_eigM(self, eigM=None, pos_dim=1):
