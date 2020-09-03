@@ -92,11 +92,11 @@ class Solver:
         nthMode = np.arange(0, len(eigM))
         return nSignChanges, nthMode
 
-    def solve(self, t, xq, idx0, eigV=None, eigM=None):
+    def solve(self, t, xq, idx0, *, eigV=None, eigM=None, **kwargs):
         """Wrapper to calculate the diffusion solution."""
         eigV = eigV if eigV is not None else self.eigV
         eigM = eigM if eigM is not None else self.eigM
-        return solution_1D(t, xq, idx0, 'arbitrary', lambdas=eigV, nus=eigM)
+        return solution_1D(t, xq, idx0, 'arbitrary', lambdas=eigV, nus=eigM, **kwargs)
 
 
 def compute_mode(lambda_, x, domain):
