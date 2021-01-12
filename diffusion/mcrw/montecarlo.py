@@ -59,19 +59,24 @@ class MonteCarlo:
             # get the relevant variables
             step = step[interacting]
             pos_before, pos_after = old_pos[interacting], new_pos[interacting]
-            idx_before, idx_after = old_idx[interacting], new_idx[interacting]
+            idx_before = old_idx[interacting]
+            idx_after = idx_before + np.where(step > 0, +1, -1)
+            idx_after[idx_after >= self.domain.N] = -1  # declare out-of-bounds
 
             # get substrate parameters
             D_before = self.domain.diffusivities[idx_before]
             D_after = self.domain.diffusivities[idx_after]
-            barrier_indices = np.where(step > 0, idx_before+1, idx_before)  # +1 is legal (N_b = N_c + 1)
+            barrier_indices = idx_before + np.where(step > 0, +1, 0)  # +1 is legal (N_b = N_c + 1)
             barriers = self.domain.barriers[barrier_indices]
             P = self.domain.permeabilities[barrier_indices]
 
             # transit
             d_after = np.abs(barriers - pos_after)
             d_before = np.abs(barriers - pos_before)
-            crosses = transit_model.crosses(d_before, d_after, D_before, D_after, P)
+            crosses = np.where(idx_after == -1,  # out-of-bounds / left domain
+                               False,  # always reflect
+                               transit_model.crosses(d_before, d_after, D_before, D_after, P),
+                              )
 
             # update based on decision
             new_pos[interacting] = barriers + d_after * np.sign(step) * np.where(crosses, 1, -1)
