@@ -12,9 +12,7 @@ class TransitABC(ABC):
 
     @classmethod
     def _crossing(cls, decision, dx_i, dx_j, D_i, D_j):
-        step = np.abs(dx_i) + np.abs(dx_j)
-        dx_after = (step - dx_i) * np.sqrt(D_j/D_i)  # if success
-        dx_j[decision] = dx_after[decision]  # modify in-place
+        dx_j[decision] *= np.sqrt(D_j/D_i)[decision]  # modify in-place
 
     @classmethod
     def crosses(cls, dx_i, dx_j, D_i, D_j, P):
