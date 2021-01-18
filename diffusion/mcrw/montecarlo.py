@@ -32,16 +32,21 @@ class MonteCarlo:
     # execute
     # ======= #
 
-    def run(self, T, dT, transit_model):
-        time = 0
-        while (time <= T):
-            self.one_step(dT, transit_model)
-            time += dT
-            if (time > T):
-                self.one_step(time - T, transit_model)
-                break
+    def run(self, T, dt, transit_model):
+        """Execute the random walk
+        If T is an integer, run T time steps until T*dt. Otherwise
+        (if T is a float), run until T using a time step of ~dt
+        """
+        if isinstance(T, int):
+            steps = [dt]*T
+        else:  # T is a float
+            time = np.linspace(0, T, int(T//dt)+1)
+            steps = np.diff(time)
+        for dt in steps:
+            self.one_step(dt, transit_model)
 
     def one_step(self, dt, transit_model):
+        """Perform a single step"""
 
         # calculate the step
         D_current = self.domain.diffusivities[self.indices]
