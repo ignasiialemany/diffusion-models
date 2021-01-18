@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 from scipy.optimize import brentq
 from chebpy import chebfun
-from chebpy.core.settings import UserPrefs as ChebpyPrefs
+from chebpy.core.settings import userPrefs as ChebpyPrefs
 
 
 def find_roots(F, x_range, root_accuracy=dict(), equal_tol=dict()):
