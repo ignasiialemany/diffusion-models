@@ -28,10 +28,10 @@ def find_roots(F, x_range, root_accuracy=dict(), equal_tol=dict()):
 
     ## 2) ... and find the roots of the function.
     # Process each interval to find the local zeros
-    roots_all = np.array([])  # empty
+    roots_all = []  # empty
     for a, b in intervals:
-        roots = find_roots_in_interval(F, a, b, **root_accuracy)  # may be []
-        roots_all = np.append(roots_all, roots)
+        roots = find_roots_in_interval(F, a, b, **root_accuracy)  # always a list
+        roots_all.extend(roots)
 
     ## 3) post-process
     x0 = np.unique(roots_all)  # sorted
@@ -153,7 +153,7 @@ def find_roots_in_interval(F, a, b, abstol=1e-22, reltol=1e-10, maxiter=100, war
         root, result = fsolve(F, a, b, full_output=True, disp=False, **tols)
         if not result.converged and warn:
             warnings.warn("fsolve did not converge in [{0:g},{1:g}]".format(a,b))
-        return root
+        return [root]
 
 
 def split_into_interval(x):

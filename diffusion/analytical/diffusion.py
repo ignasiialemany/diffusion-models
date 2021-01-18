@@ -86,6 +86,8 @@ def series(lambdas, nus, idx0, t_n, sumtype='default', clip=False, thresh=0, **k
     thresh: (scalar) where to clip
     """
 
+    lambdas = np.squeeze(lambdas)
+
     nu_0 = nus[:, idx0]
     solution = np.exp(-lambdas[:, np.newaxis] * t_n) * nus * nu_0[:, np.newaxis]
 
