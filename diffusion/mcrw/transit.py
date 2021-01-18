@@ -25,8 +25,8 @@ class TransitABC(ABC):
 
 class Constant(TransitABC):
     """Transit model using a fixed probability.
-    Can be used to set all barriers to be impermeable (p_t=0),
-    fully permeable (p_t=1), or anything inbetween.
+    Can be used as an override, to set all barriers to be
+    impermeable (p_t=0), fully permeable (p_t=1), or anything inbetween.
     """
 
     def __init__(self, p_t=0.5):
@@ -37,15 +37,20 @@ class Constant(TransitABC):
 
 
 class Parrot(TransitABC):
-    """Transit model that repeats barrier permeability"""
+    """Transit model that repeats barrier permeability
+    Clips the value of permeability to [0, 1]
+    """
 
     @classmethod
     def probability(cls, dx_i, dx_j, D_i, D_j, P):
-        return P
+        p_t = np.clip(P, 0, 1)
+        return p_t
 
 
 class Maruyama2017(TransitABC):
-    """Interface model after Maruyama2017"""
+    """Interface transit model
+    Based on (Maruyama, 2017, DOI:10.1103/PhysRevE.96.032135)
+    """
 
     @classmethod
     def probability(cls, dx_i, dx_j, D_i, D_j, P):
@@ -54,7 +59,9 @@ class Maruyama2017(TransitABC):
 
 
 class Fieremans2010(TransitABC):
-    """Membrane model after Fieremans2010"""
+    """Membrane transit model
+    Based on (Fieremans et al, 2010, DOI:10.1002/nbm.1577)
+    """
 
     @classmethod
     def probability(cls, dx_i, dx_j, D_i, D_j, P):
