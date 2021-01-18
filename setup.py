@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='diffusion-models',
-      version='0.0',
+      version='0.1',
       description='Diffusion Models',
       author='Jan Niklas Rose',
       author_email='janniklas.rose@gmail.com',
