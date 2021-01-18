@@ -2,6 +2,8 @@
 
 It is recommended to use a virtual environment for Python, such as [Anaconda](https://www.anaconda.com/products/individual).
 
+## Step-by-step
+
 First, we create a virtual environment.
 
 ```bash
@@ -27,6 +29,12 @@ conda install ipython jupyter
 ```
 
 Now, we can install the code in this repository.
+
+```bash
+pip install git+https://github.com/janniklasrose/diffusion-models.git
+```
+
+Alternatively, from the local `clone`d repository, we can execute:
 
 ```bash
 pip install --editable .
