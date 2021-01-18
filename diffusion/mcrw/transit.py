@@ -65,6 +65,19 @@ class Fieremans2010(TransitABC):
 
     @classmethod
     def probability(cls, dx_i, dx_j, D_i, D_j, P):
-        term = 2*P*dx_i/D_i
+        term = 2*dx_i*P/D_i
         p_t = np.where(np.isinf(P), 1, term/(1+term))
+        return p_t
+
+
+class Szafer1995(TransitABC):
+    """Membrane transit model
+    Based on (Szafer et al, 1995, DOI:10.1002/mrm.1910330516)
+    """
+
+    @classmethod
+    def probability(cls, dx_i, dx_j, D_i, D_j, P):
+        dx = dx_i + dx_j
+        v_i = 2*D_i/dx
+        p_t = 4*P/v_i
         return p_t
