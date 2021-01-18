@@ -5,7 +5,8 @@ import warnings
 
 import numpy as np
 from scipy.optimize import brentq
-import chebpy
+from chebpy import chebfun
+from chebpy.core.settings import UserPrefs as ChebpyPrefs
 
 
 def find_roots(F, x_range, root_accuracy=dict(), equal_tol=dict()):
@@ -100,15 +101,15 @@ def local_extrema(F, x_range, equal_tol=dict()):
         return x_range
 
     # find extrema
-    cheb = chebpy.chebfun(F, x_range)  # automatically constructed
-    maxpow2 = 16  #TODO: get this from chebpy directly
+    cheb = chebfun(F, x_range)  # automatically constructed
+    maxpow2 = ChebpyPrefs.maxpow2
     max_n = 2**(maxpow2-1)  # one exponent less to be safe
     converged = np.all([f.size < max_n for f in cheb.funs])
     if not converged:
         n_new = 1000  # probably good enough
         warnings.warn('chebfun did not converge in [{0:g}, {1:g}].'.format(*x_range)
                      +' Approximating using n={:d}'.format(n_new))
-        cheb = chebpy.chebfun(F, x_range, n=n_new)  # hopefully this is accurate enough
+        cheb = chebfun(F, x_range, n=n_new)  # hopefully this is accurate enough
     dcheb = cheb.diff()
     extrema = dcheb.roots()
     extrema = np.sort(extrema)  # sort into numpy array
