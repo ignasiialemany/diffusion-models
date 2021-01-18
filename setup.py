@@ -6,7 +6,7 @@ setup(name='diffusion-models',
       author='Jan Niklas Rose',
       author_email='janniklas.rose@gmail.com',
       url='https://github.com/janniklasrose/diffusion-models',
-      packages=['diffusion'],
+      packages=['diffusion', 'diffusion.analytical', 'diffusion.mcrw'],
       install_requires=[
             'numpy',
             'scipy',
