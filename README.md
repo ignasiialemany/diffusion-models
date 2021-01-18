@@ -1,5 +1,7 @@
 # Diffusion Models
 
+[![DOI](https://zenodo.org/badge/306312189.svg)](https://zenodo.org/badge/latestdoi/306312189)
+
 Analytical and random walk models of diffusion in permeable layered media.
 
 ## Installation
