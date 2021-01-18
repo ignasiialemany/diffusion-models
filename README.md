@@ -4,6 +4,8 @@ Analytical and random walk models of diffusion in permeable layered media.
 
 ## Installation
 
+Quick-start: `pip install git+https://github.com/janniklasrose/diffusion-models.git`
+
 See INSTALL.md for details.
 
 ## Analytical solution
