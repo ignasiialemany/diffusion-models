@@ -19,7 +19,7 @@ This new approach recursively fits Chebyshev polynomials, which are represented 
 
 An example of the time-varying diffusion solution may be seen in this animation:
 
-![animation](./docs/animation.gif)
+![animation](./docs/analytical/animation.gif)
 
 ## Monte Carlo random walk
 
