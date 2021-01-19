@@ -17,6 +17,10 @@ We present an improved algorithm to find the eigenvalues (roots of the transcend
 The original algorithm is dependent on several parameters and often leads to missed roots.
 This new approach recursively fits Chebyshev polynomials, which are represented by [chebpy](https://github.com/chebpy/chebpy) (similar to [Chebfun](http://chebfun.org)).
 
+An example of the time-varying diffusion solution may be seen in this animation:
+
+![animation](./docs/animation.gif)
+
 ## Monte Carlo random walk
 
 For higher-dimensional (2D and 3D) cases, there exists no analytical solution to the diffusion problem.
