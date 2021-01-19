@@ -22,7 +22,7 @@ In addition, the `conda` version of `numpy` comes with support for the Intel MKL
 conda install numpy scipy matplotlib
 ```
 
-Optionally, one can install `IPython` and `Jupyter` for interactive use.
+Optionally, one can install `IPython` and/or `Jupyter` for interactive use.
 
 ```bash
 conda install ipython jupyter
@@ -42,3 +42,18 @@ pip install --editable .
 
 The `-e`/`--editable` flag tells `pip` to `install` the package path.
 This leaves the source files editable.
+
+## Reproducible environment
+
+We provide the file `diffusion.yml` to quickly create a tested `conda` environment.
+Simply execute:
+
+```bash
+conda create --file diffusion.yml
+```
+
+The file was created using:
+
+```bash
+conda env export --name diffusion > diffusion.yml
+```
