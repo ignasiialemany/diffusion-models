@@ -3,7 +3,7 @@
 ## Notebooks
 
 To view the [Jupyter Notebooks](https://jupyter.org/), you need to install `jupyter`.
-In the INSTALL guide, we recommend using conda.
+In the [installation guide](../INSTALL.md), we recommend using conda.
 Simply execute `conda install notebook` and then start the server with `jupyter-notebook`.
 
 To compile multiple notebooks into a single document, we can use [`nbmerge`](https://github.com/jbn/nbmerge).
