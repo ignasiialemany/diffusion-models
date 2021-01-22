@@ -1,0 +1,2 @@
+chebpy@git+https://github.com/chebpy/chebpy.git@v0.3.0
+property-cached==1.6.4

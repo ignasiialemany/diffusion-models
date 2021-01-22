@@ -112,9 +112,4 @@ dependencies:
   - zlib=1.2.11=h7b6447c_3
   - zstd=1.4.5=h9ceee32_0
   - pip:
-    - chebpy==0.3.0
-    - chebtools==1.5.0
-    - nbmerge==0.0.4
-    - property-cached==1.6.4
-    - pychebfun==0.3
-    - pyfftw==0.12.0
+    - -r requirements.txt

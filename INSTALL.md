@@ -45,15 +45,17 @@ This leaves the source files editable.
 
 ## Reproducible environment
 
-We provide the file `diffusion.yml` to quickly create a tested `conda` environment.
+We provide the file [diffusion.yml](./diffusion.yml) to quickly create a tested `conda` environment.
 Simply execute:
 
 ```bash
-conda create --file diffusion.yml
+conda env create --file diffusion.yml --name diffusion
 ```
 
-The file was created using:
+The file was created using
 
 ```bash
 conda env export --name diffusion > diffusion.yml
 ```
+
+and then edited to remove the `prefix` key and move `pip` requirements to the [requirements.txt](./requirements.txt) file.
