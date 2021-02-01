@@ -5,6 +5,9 @@ import numpy as np
 
 class TransitABC(ABC):
 
+    def __init__(self):
+        self._rng = np.random.default_rng()
+
     @abstractmethod
     def probability(self, dx_i, dx_j, D_i, D_j, P):
         pass
@@ -12,11 +15,12 @@ class TransitABC(ABC):
     def _crossing(self, decision, dx_i, dx_j, D_i, D_j):
         dx_j[decision] *= np.sqrt(D_j/D_i)[decision]  # modify in-place
 
-    def crosses(self, dx_i, dx_j, D_i, D_j, P):
-        p_t = cls.probability(dx_i, dx_j, D_i, D_j, P)
-        uval = np.random.uniform(0, 1, dx_j.size)
-        decision = uval <= p_t
-        cls._crossing(decision, dx_i, dx_j, D_i, D_j)
+    def crosses(self, dx_i, dx_j, D_i, D_j, P, *, rng=None, exclude=None):
+        p_t = self.probability(dx_i, dx_j, D_i, D_j, P)
+        rng = self._rng if rng is None else rng
+        uval = rng.uniform(0, 1, dx_j.size)
+        decision = np.logical_and(uval <= p_t, np.logical_not(exclude))
+        self._crossing(decision, dx_i, dx_j, D_i, D_j)
         return decision
 
 

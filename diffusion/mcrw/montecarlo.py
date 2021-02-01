@@ -3,9 +3,10 @@ import numpy as np
 
 class MonteCarlo:
 
-    def __init__(self, N):
+    def __init__(self, N, *, rngseed=None):
         self.position = np.zeros(N)
         self.indices = np.zeros(N, dtype=int)
+        self.rng = np.random.default_rng(rngseed)
 
     @property
     def N(self):
@@ -19,7 +20,7 @@ class MonteCarlo:
         self.domain = domain
         if x0 is None:
             # Seed walkers randomly in the domain
-            self._place(np.random.uniform(0, 1, self.N) * self.domain.total_length)
+            self._place(self.rng.uniform(0, 1, self.N) * self.domain.total_length)
         else:
             # Seed walkers in one place
             self._place(np.repeat(x0, self.N))
@@ -50,7 +51,7 @@ class MonteCarlo:
 
         # calculate the step
         D_current = self.domain.diffusivities[self.indices]
-        step = np.array([-1,+1])[np.random.choice(2, self.N)] * np.sqrt(2*D_current*dt)
+        step = np.array([-1,+1])[self.rng.choice(2, self.N)] * np.sqrt(2*D_current*dt)
 
         # old and new state
         old_pos = self.position
@@ -78,10 +79,10 @@ class MonteCarlo:
             # transit
             d_after = np.abs(barriers - pos_after)
             d_before = np.abs(barriers - pos_before)
-            crosses = np.where(idx_after == -1,  # out-of-bounds / left domain
-                               False,  # always reflect
-                               transit_model.crosses(d_before, d_after, D_before, D_after, P),
-                              )
+            crosses = transit_model.crosses(d_before, d_after, D_before, D_after, P,
+                                            exclude=(idx_after==-1),  # out-of-bounds / left domain
+                                            rng=self.rng,
+                                           )
 
             # update based on decision
             new_pos[interacting] = barriers + d_after * np.sign(step) * np.where(crosses, 1, -1)
