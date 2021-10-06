@@ -7,6 +7,8 @@ class MonteCarlo:
         self.position = np.zeros(N)
         self.indices = np.zeros(N, dtype=int)
         self.rng = np.random.default_rng(rngseed)
+        self.flux_left=[]
+        self.flux_right=[]
 
     @property
     def N(self):
@@ -83,10 +85,16 @@ class MonteCarlo:
                                             exclude=(idx_after==-1),  # out-of-bounds / left domain
                                             rng=self.rng,
                                            )
-
+            left_to_right = np.count_nonzero((crosses==True) & (np.sign(step) == 1))
+            right_to_left = np.count_nonzero((crosses==True) & (np.sign(step) == -1))
+            self.flux_left.append((left_to_right/self.N)/dt)
+            self.flux_right.append((right_to_left/self.N)/dt)
             # update based on decision
             new_pos[interacting] = barriers + d_after * np.sign(step) * np.where(crosses, 1, -1)
             new_idx[interacting] = np.where(crosses, idx_after, idx_before)
+        else:
+            self.flux_left.append(0)
+            self.flux_right.append(0)
 
         # write
         self.position = new_pos
