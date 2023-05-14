@@ -3,10 +3,14 @@ import numpy as np
 
 class MonteCarlo:
 
-    def __init__(self, N, *, rngseed=None):
+    def __init__(self, N, *, rngseed=None, velocity_function=None):
         self.position = np.zeros(N)
         self.indices = np.zeros(N, dtype=int)
         self.rng = np.random.default_rng(rngseed)
+        if velocity_function is None:
+            self.velocity_function = lambda x,t : 0
+        else:
+            self.velocity_function = velocity_function
 
     @property
     def N(self):
@@ -48,15 +52,20 @@ class MonteCarlo:
         else:  # T is a float
             time = np.linspace(0, T, int(T//dt)+1)
             steps = np.diff(time)
+        
+        curr_time = 0
         for dt in steps:
-            self.one_step(dt, transit_model)
+            curr_time += dt
+            self.one_step(dt, transit_model, curr_time)
 
-    def one_step(self, dt, transit_model):
+    def one_step(self, dt, transit_model, curr_time):
         """Perform a single step"""
 
         # calculate the step
         D_current = self.domain.diffusivities[self.indices]
         step = np.array([-1,+1])[self.rng.choice(2, self.N)] * np.sqrt(2*D_current*dt)
+        velocities = self.velocity_function(self.position-self.domain.total_length/2, curr_time)
+        step += velocities * dt
 
         # old and new state
         old_pos = self.position
