@@ -16,6 +16,11 @@ class MonteCarlo:
     # seeding
     # ======= #
 
+    def seed_in_interval(self,domain,xmin,xmax):
+        self.domain = domain
+        self._place(self.rng.uniform(xmin,xmax,self.N))
+        
+        
     def seed(self, domain, x0=None):
         self.domain = domain
         if x0 is None:
