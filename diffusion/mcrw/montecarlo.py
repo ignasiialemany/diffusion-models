@@ -65,11 +65,15 @@ class MonteCarlo:
         D_current = self.domain.diffusivities[self.indices]
         step = np.array([-1,+1])[self.rng.choice(2, self.N)] * np.sqrt(2*D_current*dt)
         velocities = self.velocity_function(self.position-self.domain.total_length/2, curr_time)
-        step += velocities * dt
 
+        #Predictor-Corrector
+        predict_pos = self.position + step + velocities * dt
+        velocity_after = self.velocity_function(predict_pos-self.domain.total_length/2, curr_time+dt)
+        average_velocity = (velocities + velocity_after)/2
+        
         # old and new state
         old_pos = self.position
-        new_pos = self.position + step
+        new_pos = self.position + step + average_velocity * dt
         old_idx = self.indices
         new_idx = self.domain.locate(new_pos)
 
