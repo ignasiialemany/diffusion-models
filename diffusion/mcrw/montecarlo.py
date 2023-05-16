@@ -1,5 +1,5 @@
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 class MonteCarlo:
 
@@ -55,8 +55,9 @@ class MonteCarlo:
         
         curr_time = 0
         for dt in steps:
-            curr_time += dt
             self.one_step(dt, transit_model, curr_time)
+            curr_time += dt
+
 
     def one_step(self, dt, transit_model, curr_time):
         """Perform a single step"""
@@ -64,17 +65,28 @@ class MonteCarlo:
         # calculate the step
         D_current = self.domain.diffusivities[self.indices]
         step = np.array([-1,+1])[self.rng.choice(2, self.N)] * np.sqrt(2*D_current*dt)
-        velocities = self.velocity_function(self.position-self.domain.total_length/2, curr_time)
-
+        
         #Predictor-Corrector
-        predict_pos = self.position + step + velocities * dt
-        velocity_after = self.velocity_function(predict_pos-self.domain.total_length/2, curr_time+dt)
+        velocities = self.velocity_function(self.position, curr_time)
+        predict_pos = self.position + velocities * dt
+        velocity_after = self.velocity_function(predict_pos, curr_time)
         average_velocity = (velocities + velocity_after)/2
         
+        #Update particle to strain
+        self.position = self.position + average_velocity * dt
+        
+        #Update domain barriers to strain
+        self.domain.update_barriers(self.velocity_function, curr_time, dt)
+        
         # old and new state
-        old_pos = self.position
-        new_pos = self.position + step + average_velocity * dt
-        old_idx = self.indices
+        old_pos = self.position + average_velocity * dt
+        old_idx = self.domain.locate(old_pos)
+        new_pos = self.position + step 
+        
+        ratio = np.abs((average_velocity*dt))/np.abs(step)
+        print(np.max(ratio))
+        
+        #old_idx = self.indices
         new_idx = self.domain.locate(new_pos)
 
         interacting = old_idx != new_idx
@@ -109,3 +121,11 @@ class MonteCarlo:
         # write
         self.position = new_pos
         self.indices = new_idx
+        
+        bins = np.concatenate([np.arange(-200,-60,5),np.arange(-60,60,5),np.arange(60,200,5)])
+        plt.clf()
+        plt.hist(self.position, bins=bins, density=True, histtype='step')
+        plt.title(f'time = {curr_time:.1f}')
+        plt.draw()
+        plt.pause(0.01)
+        
