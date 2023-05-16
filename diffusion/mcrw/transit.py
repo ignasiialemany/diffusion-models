@@ -79,3 +79,13 @@ class Szafer1995(TransitABC):
         v_i = 2*D_i/dx
         p_t = 4*P/v_i
         return p_t
+
+class HybridModel2022(TransitABC):
+    def probability(self,dx_i,dx_j,D_i,D_j,P):
+        D_low = np.minimum(D_i,D_j)
+        l_low  = dx_i * np.sqrt(D_low/D_i)
+        term = 2 * l_low * P * 1/D_low
+        p_fieremans = term/(1+term)
+        p_maruyama = np.minimum(1,np.sqrt(D_low/D_i))
+        p_t = p_fieremans * p_maruyama
+        return p_t
