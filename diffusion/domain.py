@@ -23,17 +23,25 @@ class Domain:
     def N(self):
         return len(self.lengths)
 
-    @cached_property
+    @property
     def barriers(self):
-        return np.append(0, np.cumsum(self.lengths))
+        return np.append(0, np.cumsum(self.lengths)) - self.total_length/2
 
-    @cached_property
+    @property
     def total_length(self):
         return np.sum(self.lengths)
 
     def locate(self, positions, **kwargs):
         return locate_inside(positions, self.barriers, **kwargs)
-
+    
+    def update_barriers(self, velocity_func, curr_time, dt):
+        old_barriers = self.barriers
+        velocity_at_barriers = velocity_func(old_barriers, curr_time)
+        new_barriers = old_barriers + velocity_at_barriers*dt
+        self.lengths = np.diff(new_barriers)
+        
+        
+        
 
 def locate_inside(positions, barriers, verify=False):
     N = positions.size
