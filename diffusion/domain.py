@@ -36,8 +36,8 @@ class Domain:
     
     def update_barriers(self, velocity_func, curr_time, dt):
         old_barriers = self.barriers
-        velocity_at_barriers = velocity_func(old_barriers, curr_time)
-        new_barriers = old_barriers + velocity_at_barriers*dt
+        velocities = velocity_func(old_barriers, curr_time)
+        new_barriers = old_barriers + velocities*dt        
         self.lengths = np.diff(new_barriers)
         
         

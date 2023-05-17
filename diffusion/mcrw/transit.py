@@ -86,6 +86,7 @@ class HybridModel2022(TransitABC):
         l_low  = dx_i * np.sqrt(D_low/D_i)
         term = 2 * l_low * P * 1/D_low
         p_fieremans = term/(1+term)
+        p_fieremans = np.where(np.isinf(P), 1, term/(1+term))
         p_maruyama = np.minimum(1,np.sqrt(D_low/D_i))
         p_t = p_fieremans * p_maruyama
         return p_t

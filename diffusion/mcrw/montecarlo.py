@@ -68,23 +68,22 @@ class MonteCarlo:
         
         #Predictor-Corrector
         velocities = self.velocity_function(self.position, curr_time)
-        predict_pos = self.position + velocities * dt
-        velocity_after = self.velocity_function(predict_pos, curr_time)
-        average_velocity = (velocities + velocity_after)/2
+        #predict_pos = self.position + velocities * dt
+        #velocity_after = self.velocity_function(predict_pos, curr_time)
+        #average_velocity = (velocities + velocity_after)/2
         
         #Update particle to strain
-        self.position = self.position + average_velocity * dt
+        self.position = self.position + velocities * dt
         
         #Update domain barriers to strain
         self.domain.update_barriers(self.velocity_function, curr_time, dt)
         
         # old and new state
-        old_pos = self.position + average_velocity * dt
+        old_pos = self.position 
         old_idx = self.domain.locate(old_pos)
         new_pos = self.position + step 
         
-        ratio = np.abs((average_velocity*dt))/np.abs(step)
-        print(np.max(ratio))
+        #print(np.max(ratio))
         
         #old_idx = self.indices
         new_idx = self.domain.locate(new_pos)
@@ -122,10 +121,10 @@ class MonteCarlo:
         self.position = new_pos
         self.indices = new_idx
         
-        bins = np.concatenate([np.arange(-200,-60,5),np.arange(-60,60,5),np.arange(60,200,5)])
-        plt.clf()
-        plt.hist(self.position, bins=bins, density=True, histtype='step')
-        plt.title(f'time = {curr_time:.1f}')
-        plt.draw()
-        plt.pause(0.01)
+        #bins = np.concatenate([np.arange(-200,-60,5),np.arange(-60,60,5),np.arange(60,200,5)])
+        #plt.clf()
+        #plt.hist(self.position, bins=bins, density=True, histtype='step')
+        #plt.title(f'time = {curr_time:.1f}')
+        #plt.draw()
+        #plt.pause(0.01)
         
